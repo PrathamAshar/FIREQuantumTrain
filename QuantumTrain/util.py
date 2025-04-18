@@ -59,37 +59,58 @@ def apply_layer(x, layer_config, state_dict, device, dtype):
     name       = layer_config["name"]
     
     # Apply the specified layer based on its type
+    # REMINDER THAT F REFERS TO torch.nn.functional
+
+
+    # Compressing the data via a fashion depicted by the weight and bias
+    # x is the argument for the model that will be used ljater
     if layer_type == "Conv2d":
         weight = state_dict[f'{name}.weight'].to(device).type(dtype)
         bias = state_dict[f'{name}.bias'].to(device).type(dtype)
         x = F.conv2d(x, weight, bias, **layer_config["params"])
         
+
+    # Subsampling layer that allows for expansion of "idea" processing
     elif layer_type == "MaxPool2d":
         x = F.max_pool2d(x, **layer_config["params"])
         
+    # Regression line calculation, can be used in feed forward to see result
     elif layer_type == "Linear":
         weight = state_dict[f'{name}.weight'].to(device).type(dtype)
         bias = state_dict[f'{name}.bias'].to(device).type(dtype)
         x = F.linear(x, weight, bias)
     
+    # Takes a multidimensional input(usually a tensor) and turns it into a one dimentional
+    # vector that can be used for the input for certain layers when necessary
     elif layer_type == "Flatten":
         x = x.view(x.size(0), -1)
     
+    # "Rectified Linear Unit" layer does a non linear transformation and just makes all negative
+    # values 0 and leaves all positive values the same
+    # This enables non-linearity which is vital for an AI to see more complex patterns
     elif layer_type == "ReLU":
         x = F.relu(x)
     
+    # The sigmoid function. Goes from 0 to 1
     elif layer_type == "Sigmoid":
         x = F.sigmoid(x)
     
+    # The Tanh function. Also goes from 0 to 1 in a slightly different way
     elif layer_type == "Tanh":
         x = F.tanh(x)
     
+    # Slight modification of standard ReLU, where this time it puts a gradual ascent on negative values
+    # instead of just sending them to 0. Prevents "Dying ReLU" problem where neurons become inactive
     elif layer_type == "LeakyReLU":
         x = F.leaky_relu(x, negative_slope=0.01)
     
+    # This essentially gives a probability distribution, think how ChatGPT chooses the next best word
+    # Lowers the probability of unlikely things and increases the probability of higher the higher things
+    # Takes exponential and normalizes them.
     elif layer_type == "Softmax":
         x = F.softmax(x, dim=-1)
     
+    # Smooth approximation of base ReLU
     elif layer_type == "Softplus":
         x = F.softplus(x)
     
